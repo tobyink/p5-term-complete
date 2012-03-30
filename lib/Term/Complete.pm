@@ -87,12 +87,24 @@ CONFIG: {
 sub Complete {
     my $prompt = shift;
     
-    my @cmp_lst = do {
-        if (ref $_[0] || $_[0] =~ /^\*/) {
-            sort @{$_[0]};
+    my $cmp_lst = do {
+        if (ref $_[0] eq 'CODE') {
+            shift;
         }
         else {
-            sort(@_);
+            my @cmp_lst = do {
+                if (ref $_[0] eq 'ARRAY' || $_[0] =~ /^\*/) {
+                    sort @{+shift};
+                }
+                else {
+                    sort(@_);
+                }
+            };
+            
+            sub {
+                my $partial = shift;
+                grep(/^\Q$partial/, @cmp_lst);
+            }
         }
     };
     
@@ -118,7 +130,7 @@ sub Complete {
             CASE: {
                 # (TAB) attempt completion
                 $_ eq "\t" && do {
-                    my @match = grep(/^\Q$return/, @cmp_lst);
+                    my @match = $cmp_lst->($return);
                     unless ($#match < 0) {
                         my $l = length(my $test = shift(@match));
                         foreach my $cmp (@match) {
@@ -135,7 +147,7 @@ sub Complete {
                 
                 # (^D) completion list
                 $_ eq $complete && do {
-                    print(join("\r\n", '', grep(/^\Q$return/, @cmp_lst)), "\r\n");
+                    print(join("\r\n", '', $cmp_lst->($return)), "\r\n");
                     redo LOOP;
                 };
                 
