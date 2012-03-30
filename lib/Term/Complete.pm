@@ -16,12 +16,26 @@ Term::Complete - Perl word completion module
 =head1 SYNOPSIS
 
     $input = Complete('prompt_string', \@completion_list);
+    $input = Complete('prompt_string', \&completion_list);
     $input = Complete('prompt_string', @completion_list);
 
 =head1 DESCRIPTION
 
 This routine provides word completion on the list of words in
-the array (or array ref).
+the array or array ref.
+
+If a reference to a sub is provided, that sub will be called with
+the word typed so far passed as its argument, and is expected to
+return a completion list.
+
+When the completion list is provided as a code ref or array ref,
+C<Complete> accepts an optional third parameter, a formatter code
+ref. When the user presses C<< ^D >> to see a list of choices,
+this formatter will be called with a list of words, and is expected
+to join them into a string to be printed. The default formatter
+formats the words one per line.
+
+=head2 Internals
 
 The tty driver is put into raw mode and restored using an operating
 system specific command, in UNIX-like environments C<stty>.
@@ -87,26 +101,31 @@ CONFIG: {
 sub Complete {
     my $prompt = shift;
     
-    my $cmp_lst = do {
-        if (ref $_[0] eq 'CODE') {
-            shift;
-        }
-        else {
-            my @cmp_lst = do {
-                if (ref $_[0] eq 'ARRAY' || $_[0] =~ /^\*/) {
-                    sort @{+shift};
-                }
-                else {
-                    sort(@_);
-                }
-            };
-            
-            sub {
-                my $partial = shift;
-                grep(/^\Q$partial/, @cmp_lst);
+    my ($cmp_lst, $formatter);
+    
+    if (ref $_[0] eq 'CODE') {
+        ($cmp_lst, $formatter) = @_;
+    }
+    else {
+        my @cmp_lst = do {
+            if (ref $_[0] eq 'ARRAY' || $_[0] =~ /^\*/) {
+                $formatter = $_[1];
+                sort @{$_[0]};
             }
+            else {
+                sort(@_);
+            }
+        };
+        
+        $cmp_lst = sub {
+            my $partial = shift;
+            grep(/^\Q$partial/, @cmp_lst);
         }
-    };
+    }
+    
+    if (ref $formatter ne 'CODE') {
+        $formatter = sub { join("\r\n", '', @_) . "\r\n" };
+    }
     
     my ($return, $r) = ("", 0);
     
@@ -147,7 +166,7 @@ sub Complete {
                 
                 # (^D) completion list
                 $_ eq $complete && do {
-                    print(join("\r\n", '', $cmp_lst->($return)), "\r\n");
+                    print $formatter->( $cmp_lst->($return) );
                     redo LOOP;
                 };
                 
