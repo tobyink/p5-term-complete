@@ -47,7 +47,7 @@ The following command characters are defined:
 =item E<lt>tabE<gt>
 
 Attempts word completion.
-Cannot be changed.
+Defined by I<$Term::Complete::tabchar>.
 
 =item ^D
 
@@ -70,23 +70,20 @@ Defined by I<$Term::Complete::erase1> and I<$Term::Complete::erase2>.
 
 Bell sounds when word completion fails.
 
-=head1 BUGS
-
-The completion character E<lt>tabE<gt> cannot be changed.
-
 =head1 AUTHOR
 
 Wayne Thompson
 
 =cut
 
-our ($complete, $kill, $erase1, $erase2, $tty_raw_noecho, $tty_restore, $stty, $tty_safe_restore);
+our ($tabchar, $complete, $kill, $erase1, $erase2, $tty_raw_noecho, $tty_restore, $stty, $tty_safe_restore);
 our ($tty_saved_state) = '';
 CONFIG: {
+    $tabchar  = "\t";
     $complete = "\004";
     $kill     = "\025";
-    $erase1 =   "\177";
-    $erase2 =   "\010";
+    $erase1   = "\177";
+    $erase2   = "\010";
     foreach my $s (qw(/bin/stty /usr/bin/stty)) {
         if (-x $s) {
             $tty_raw_noecho = "$s raw -echo";
@@ -148,7 +145,7 @@ sub Complete {
         while (($_ = getc(STDIN)) ne "\r") {
             CASE: {
                 # (TAB) attempt completion
-                $_ eq "\t" && do {
+                $_ eq $tabchar && do {
                     my @match = $cmp_lst->($return);
                     unless ($#match < 0) {
                         my $l = length(my $test = shift(@match));
