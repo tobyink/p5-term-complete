@@ -66,8 +66,8 @@ Wayne Thompson
 
 =cut
 
-our($complete, $kill, $erase1, $erase2, $tty_raw_noecho, $tty_restore, $stty, $tty_safe_restore);
-our($tty_saved_state) = '';
+our ($complete, $kill, $erase1, $erase2, $tty_raw_noecho, $tty_restore, $stty, $tty_safe_restore);
+our ($tty_saved_state) = '';
 CONFIG: {
     $complete = "\004";
     $kill     = "\025";
@@ -85,16 +85,18 @@ CONFIG: {
 }
 
 sub Complete {
-    my($prompt, @cmp_lst, $cmp, $test, $l, @match);
-    my ($return, $r) = ("", 0);
+    my $prompt = shift;
     
-    $prompt = shift;
-    if (ref $_[0] || $_[0] =~ /^\*/) {
-        @cmp_lst = sort @{$_[0]};
-    }
-    else {
-        @cmp_lst = sort(@_);
-    }
+    my @cmp_lst = do {
+        if (ref $_[0] || $_[0] =~ /^\*/) {
+            sort @{$_[0]};
+        }
+        else {
+            sort(@_);
+        }
+    };
+    
+    my ($return, $r) = ("", 0);
     
     # Attempt to save the current stty state, to be restored later
     if (defined $stty && defined $tty_saved_state && $tty_saved_state eq '') {
@@ -116,10 +118,10 @@ sub Complete {
             CASE: {
                 # (TAB) attempt completion
                 $_ eq "\t" && do {
-                    @match = grep(/^\Q$return/, @cmp_lst);
+                    my @match = grep(/^\Q$return/, @cmp_lst);
                     unless ($#match < 0) {
-                        $l = length($test = shift(@match));
-                        foreach $cmp (@match) {
+                        my $l = length(my $test = shift(@match));
+                        foreach my $cmp (@match) {
                             until (substr($cmp, 0, $l) eq substr($test, 0, $l)) {
                                 $l--;
                             }
