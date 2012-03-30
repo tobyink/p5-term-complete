@@ -88,9 +88,6 @@ sub Complete {
     my($prompt, @cmp_lst, $cmp, $test, $l, @match);
     my ($return, $r) = ("", 0);
     
-    $return = "";
-    $r      = 0;
-    
     $prompt = shift;
     if (ref $_[0] || $_[0] =~ /^\*/) {
         @cmp_lst = sort @{$_[0]};
